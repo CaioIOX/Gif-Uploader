@@ -17,23 +17,44 @@
   }
 
   function handleFile() {
-    $target_dir = "uploads/";
-    $target_file = $target_dir . basename($_FILES["filetag"]["name"]);
+    $target_dir = "assets/uploads/";
+    $fileName = basename($_FILES["filetag"]["name"]);
     $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+    $imageFileType = strtolower(pathinfo($fileName,PATHINFO_EXTENSION));
+    $target_file = $target_dir . md5(date('l jS \of F Y h:i:s A').$fileName).".".$imageFileType;
     // Check if image file is a actual image or fake image
-    if(isset($_POST["submit"])) {
       $check = getimagesize($_FILES["filetag"]["tmp_name"]);
       if($check !== false) {
-        echo "File is an image - " . $check["mime"] . ".";
+    //    echo "File is an image - " . $check["mime"] . ".";
         $uploadOk = 1;
       } else {
-        echo "File is not an image.";
+    //    echo "File is not an image.";
         $uploadOk = 0;
       }
-    } else {
-      echo "batata";
-    }
+      // Check if file already exists
+if (file_exists($target_file)) {
+  echo "Sorry, file already exists.";
+  $uploadOk = 0;
+}
+
+// Allow certain file formats
+if($imageFileType != "gif" ) {
+  echo "Sorry, only GIF files are allowed.".$imageFileType;
+  $uploadOk = 0;
+}
+
+// Check if $uploadOk is set to 0 by an error
+if ($uploadOk == 0) {
+  echo "Sorry, your file was not uploaded.";
+// if everything is ok, try to upload file
+} else {
+  if (move_uploaded_file($_FILES["filetag"]["tmp_name"], $target_file)) {
+    $GLOBALS["newGif"] = $target_file;
+    $_SESSION["currentGif"] = $target_file;
+  } else {
+    echo "Sorry, there was an error uploading your file.";
+  }
+}
   }
 
   if(is_null($loggedUser) && isset($_POST["loginForm"])) {
@@ -44,6 +65,15 @@
       $_SESSION["user"]=$loggedUser;
     }
   }
+
+  if(isset($_POST["fileForm"])) {
+    handleFile();
+  }
+  $currentGif = null;
+  if(isset($_SESSION["currentGif"])) {
+    $currentGif = $_SESSION["currentGif"];
+  }
+
 ?>
 
    <?php if(is_null($loggedUser)) {?>   
@@ -66,9 +96,14 @@
         <hr>
     </form>
     <?php } ?>
+    <?php if(isset($newGif)) { ?>
+      <h3>O arquivo pode ser acessado em <a href="<?=$newGif?>"><?=$newGif?></a></h3>
+     <?php } ?>
     <div id="gifResize">
         <form name="formName">
-            <img src="https://media.giphy.com/media/CNAhQuDceLwwo/giphy.gif" alt="rendered image" id="rendered-image">
+        <?php if(!is_null($currentGif)) { ?>    
+        <img src="<?= $currentGif ?>" alt="rendered image" id="rendered-image">
+        <?php } ?>
         </form>
     </div>
     <div id="submission"></div>  
@@ -79,7 +114,7 @@
                     <br>
             </p>
             <p>
-                <input type="submit" name="submit" value="Enviar" >
+                <input type="submit" name="fileForm" value="Enviar" >
             </p>    
          </form>
     <?php } ?>   
